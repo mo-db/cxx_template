@@ -1,0 +1,9 @@
+CompileFlags: 
+  Add: [
+    "-I./src",
+    "-I/opt/homebrew/opt/llvm/include",
+    "-I/opt/homebrew/Cellar/sdl2/2.30.12/include/SDL2",
+    "-I/opt/homebrew/Cellar/sdl2_image/2.8.4/include/SDL2"
+    "-I/opt/homebrew/Cellar/sdl3/3.2.2/include/SDL3",
+    "-I/opt/homebrew/Cellar/sdl3_image/3.2.0/include/SDL3"
+  ]
