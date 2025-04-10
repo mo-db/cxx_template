@@ -3,9 +3,5 @@
 - k_name for constants
 - PascalCase for typedefs
 - snake_case for everything else
-
-void function() {
-}
-
-while () {
-}
+- void function() {}
+- while () {}
