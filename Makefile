@@ -1,3 +1,9 @@
+## DOCUMENTATION
+# make setup: create .gitignore, .clangd, and if missing BIN_DIR and OBJ_DIR
+# make clean: rm BIN_DIR, OBJ_DIR
+# to change between C and C++ edit CXX, CX, BASE_FLAGS variables
+# to add libraries edit EXT_LIBS variable - can also be empty
+
 ## BASE VARS
 SRC_NAMES :=
 SRC_DIR := src
@@ -27,7 +33,7 @@ DEBUG_FLAGS := -g -fsanitize=address,undefined
 CXXFLAGS := $(BASE_FLAGS) $(DEBUG_FLAGS) $(WARNING_FLAGS) $(DEP_FLAGS) 
 LDFLAGS := $(DEBUG_FLAGS) 
 
-# Additional libraries
+## External libraries
 EXT_LIBS :=
 
 # Only call pkg-config if at least one external library is specified
@@ -88,16 +94,13 @@ setup: $(OBJ_DIR) $(BIN_DIR)
 	echo "/bin" > .gitignore
 	echo "/obj" >> .gitignore
 
-## Helper Legend
-# normal-prerequisites | order-only-prerequisites (no out of date check)
+## Additional Information
+# normal-prerequisites | order-only-prerequisites (no check for changes)
 
-## Automatic variables:
 # $^: all prerequisites
 # $<: first prerequisite
 # $@: target
 
-## Specifics
 # -MDD, -MP: create .d files for header deps
 # dsymutil: extract debug info (Mac only)
-
 # Make always uses /bin/sh as shell
