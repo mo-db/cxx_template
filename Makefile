@@ -1,76 +1,92 @@
-## Blueprint Makefile
-SRC_FILES := 
+## BASE VARS
+SRC_NAMES :=
 SRC_DIR := src
 OBJ_DIR := obj
 BIN_DIR := bin
 
-## create vars for target, src and object files
+## COMPILER AND FILETYPE
+CXX := clang++
+CX := cc
+
+## GENERATE VARS FROM SRC_NAMES
 EXE := $(BIN_DIR)/a.out
-SRC := $(wildcard $(SRC_DIR)/*.c)
-OBJ := $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(SRC_FILES)))
+SRC_FILES := $(addprefix $(SRC_DIR)/, $(addsuffix .$(CX), $(SRC_NAMES)))
+OBJ_FILES := $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(SRC_NAMES)))
+ASM_FILES := $(addprefix $(OBJ_DIR)/, $(addsuffix .s, $(SRC_NAMES)))
 
-# config for libraries, dont forget to edit upclangd target
-BREW_PREFIX := /opt/homebrew/Cellar
+## FLAGS
+BASE_FLAGS := -std=c++23 -I$(SRC_DIR)
+# Create dependency files 
+# If header changes, trigger recompilation of dependent source files
+DEP_FLAGS := -MMD -MP
+-include $(OBJ_FILES:.o=.d)
+# Warning and Debug flags, debug flags need to be included when linking
+WARNING_FLAGS := -Wall -Wextra -pedantic
+DEBUG_FLAGS := -g -fsanitize=address,undefined
 
-SDL3_PREFIX:= $(BREW_PREFIX)/sdl3/3.2.2
-SDL3_CFLAGS := -I$(SDL3_PREFIX)/include 
-SDL3_LDFLAGS := -L$(SDL3_PREFIX)/lib -lsdl3 
+CXXFLAGS := $(BASE_FLAGS) $(DEBUG_FLAGS) $(WARNING_FLAGS) $(DEP_FLAGS) 
+LDFLAGS := $(DEBUG_FLAGS) 
 
-SDL3_IMG_PREFIX:= $(BREW_PREFIX)/sdl3_image/3.2.0
-SDL3_IMG_CFLAGS := -I$(SDL3_IMG_PREFIX)/include
-SDL3_IMG_LDFLAGS := -L$(SDL3_IMG_PREFIX)/lib -lsdl3_image
+# Additional libraries
+EXT_LIBS :=
 
-FFMPEG_PREFIX := $(BREW_PREFIX)/ffmpeg/7.1_4
-FFMPEG_CFLAGS := -I$(FFMPEG_PREFIX)/include
-FFMPEG_LDFLAGS := -L$(FFMPEG_PREFIX)/lib -lavcodec
+# Only call pkg-config if at least one external library is specified
+ifeq ($(EXT_LIBS),)
+	EXT_CFLAGS :=
+	EXT_LDFLAGS :=
+else
+	EXT_CFLAGS := $(shell pkg-config --cflags $(EXT_LIBS))
+	EXT_LDFLAGS := $(shell pkg-config --libs $(EXT_LIBS))
+endif
 
-FLAGS := -fsanitize=address -fsanitize=undefined
-CFLAGS := $(FLAGS) -Wall -Wextra -g -MMD -MP $(SDL3_CFLAGS) $(FFMPEG_CFLAGS)
-LDFLAGS := $(FLAGS) $(SDL3_LDFLAGS) $(FFMPEG_LDFLAGS)
+CXXFLAGS += $(EXT_CFLAGS)
+LDFLAGS += $(EXT_LDFLAGS)
 
-## select compiler
-# CC := gcc-14
-CC := clang
-
-
-## Targets
+## TARGETS
 # Phony targets aren't treated as files
-.PHONY: all run clean upclangd
+.PHONY: all run asm clean
 
 # Default target, executed with 'make' command
-build: $(EXE)
+all: $(EXE)
 
 # Execute immediatelly after building
 run: $(EXE)
-	./bin/a.out
+	./$(EXE)
+
+asm: $(ASM_FILES)
+	@echo "Assembly files generated in $(OBJ_DIR): $(ASM_FILES)"
 
 # Link all the objectfiles into an exe
-$(EXE): $(OBJ) | $(BIN_DIR) # 
-	$(CC) $(LDFLAGS) $^ -o $@
-	dsymutil $@
+$(EXE): $(OBJ_FILES) | $(BIN_DIR)
+	$(CXX) $(LDFLAGS) $^ -o $@
+	@dsymutil $@ 2>/dev/null || true  # macOS only, fails silently on other OS
 
-# Only source files that have been changed get rebuilt
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+# Pattern rule for .s files
+$(OBJ_DIR)/%.s: $(SRC_DIR)/%.$(CX) | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) -S $< -o $@
 
-# Clean for rebuilt - Using implicit variable RM (rm -f)
-clean:
-	@$(RM) -r $(OBJ_DIR) $(BIN_DIR)
-
-# Recreate the .clangd file with the correct include paths
-upclangd:
-	echo "CompileFlags:" > .clangd
-	echo "  Add: [" >> .clangd
-	echo "    $(SRC_DIR), $(SDL3_CFLAGS), $(SDL3_IMG_CFLAGS), $(FFMPEG_CFLAGS)" >> .clangd
-	echo "  ]" >> .clangd
+# Pattern rule for .o files
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.$(CX) | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Make sure directories exist
 $(OBJ_DIR) $(BIN_DIR):
 	mkdir -p $@
 
-# check header files for changes
--include $(OBJ:.o=.d)
+# Clean for rebuilt - Using implicit variable RM (rm -f)
+clean:
+	$(RM) -r $(OBJ_DIR) $(BIN_DIR)
 
+setup: $(OBJ_DIR) $(BIN_DIR)
+	echo "CompileFlags:" > .clangd
+	echo "  Add: [" >> .clangd
+	@for flag in $(CXXFLAGS); do \
+		echo "    \"$$flag\"," >> .clangd; \
+	done
+	echo "  ]" >> .clangd
+
+	echo "/bin" > .gitignore
+	echo "/obj" >> .gitignore
 
 ## Helper Legend
 # normal-prerequisites | order-only-prerequisites (no out of date check)
@@ -82,5 +98,6 @@ $(OBJ_DIR) $(BIN_DIR):
 
 ## Specifics
 # -MDD, -MP: create .d files for header deps
-# -g: additional debug info gets created
-# dsymutil: extract debug info into seperate file, Mac thing I think..
+# dsymutil: extract debug info (Mac only)
+
+# Make always uses /bin/sh as shell
