@@ -96,15 +96,19 @@ clean:
 	$(RM) -r $(OBJ_DIR) $(BIN_DIR)
 
 setup: $(OBJ_DIR) $(BIN_DIR)
-	echo "CompileFlags:" > .clangd
-	echo "  Add: [" >> .clangd
+	@echo "Generating .clangd"
+	@echo "CompileFlags:" > .clangd
+	@echo "  Add: [" >> .clangd
 	@for flag in $(CXXFLAGS); do \
 		echo "    \"$$flag\"," >> .clangd; \
 	done
-	echo "  ]" >> .clangd
+	@echo "  ]" >> .clangd
 
-	echo "/bin" > .gitignore
-	echo "/obj" >> .gitignore
+	@echo "Generating .gitignore"
+	@echo "/bin" > .gitignore
+	@echo "/obj" >> .gitignore
+	@echo ".gitignore" >> .gitignore
+	@echo ".clangd" >> .gitignore
 
 ## Additional Information
 # normal-prerequisites | order-only-prerequisites (no check for changes)
