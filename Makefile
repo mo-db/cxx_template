@@ -26,15 +26,27 @@ BASE_FLAGS := -std=c++23 -I$(SRC_DIR)
 # If header changes, trigger recompilation of dependent source files
 DEP_FLAGS := -MMD -MP
 -include $(OBJ_FILES:.o=.d)
+
 # Warning and Debug flags, debug flags need to be included when linking
-WARNING_FLAGS := -Wall -Wextra -pedantic
-DEBUG_FLAGS := -g -fsanitize=address,undefined
+M ?= debug
+ifeq ($(M), debug)
+	DEBUG_FLAGS := -g -fsanitize=address,undefined
+	WARNING_FLAGS := -Wall -Wextra -pedantic
+else ifeq ($(M), thread)
+	DEBUG_FLAGS := -g -fsanitize=thread
+	WARNING_FLAGS := -Wall -Wextra -pedantic
+else ifeq ($(M), simple)
+	DEBUG_FLAGS :=
+	WARNING_FLAGS := -Wall
+endif
+
+## Debug Flag presets
 
 CXXFLAGS := $(BASE_FLAGS) $(DEBUG_FLAGS) $(WARNING_FLAGS) $(DEP_FLAGS) 
-LDFLAGS := $(DEBUG_FLAGS) 
+LDFLAGS := -lpthread -lm $(DEBUG_FLAGS) 
 
 ## External libraries
-EXT_LIBS :=
+EXT_LIBS := sdl3
 
 # Only call pkg-config if at least one external library is specified
 ifeq ($(EXT_LIBS),)
@@ -104,3 +116,11 @@ setup: $(OBJ_DIR) $(BIN_DIR)
 # -MDD, -MP: create .d files for header deps
 # dsymutil: extract debug info (Mac only)
 # Make always uses /bin/sh as shell
+
+## Helpful Commands
+# as foo.s -o foo.o && ld -no pie foo.o -o foo
+# gcc hello.s -o hello -no pie
+
+# ar r libfoo.a foo.o bar.o
+# ranlib libfoo.a
+# -L. -lfoo
