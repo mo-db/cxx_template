@@ -5,8 +5,8 @@
 # to add libraries edit EXT_LIBS variable - can also be empty
 
 ## BASE VARS
-SRC_NAMES := main2
-SRC_DIR := src/ex03
+SRC_NAMES :=
+SRC_DIR := src
 OBJ_DIR := obj
 BIN_DIR := bin
 
